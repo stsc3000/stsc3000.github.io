@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[stsc3000's blog]]></title>
+  <link href="http://stsc3000.github.io/atom.xml" rel="self"/>
+  <link href="http://stsc3000.github.io/"/>
+  <updated>2013-10-26T20:17:48+02:00</updated>
+  <id>http://stsc3000.github.io/</id>
+  <author>
+    <name><![CDATA[Steffen Schildknecht]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[A Tale of Frankenstein and Binding to Service Values in Angular.js]]></title>
+    <link href="http://stsc3000.github.io/blog/2013/10/26/a-tale-of-frankenstein-and-binding-to-service-values-in-angular-dot-js/"/>
+    <updated>2013-10-26T17:39:00+02:00</updated>
+    <id>http://stsc3000.github.io/blog/2013/10/26/a-tale-of-frankenstein-and-binding-to-service-values-in-angular-dot-js</id>
+    <content type="html"><![CDATA[<p>While learning AngularJS I have often banged my head against the wall
+when being faced with values defined on my controller scopes that just
+won&rsquo;t change along with the things they are representing. This post is
+about a common error that beginners are prone to make in such a situation,
+a small dive into the angular <code>$digest</code> loop, a short explanation of assignment of values in javascript
+ and, finally, a way to confidently have values updated in your controllers.</p>
+
+<!-- more -->
+
+
+<p></p>
+
+<p>So let&rsquo;s say you are a mad scientist that is trying to create a living
+being that will commit acts of cruelty and murder driven by its
+loneliness and despair. Let&rsquo;s also say you have set up your whole
+machinery and what-not, leaving you waiting for a thunderstorm that will
+provide enough energy through lightning to finally &lsquo;shock&rsquo; your creature
+to life.</p>
+
+<p><img class="center" src="http://stsc3000.github.io/images/posts/frankenstein/frankenstein_excited.jpg" title="[ Title [ alt ] ]" ></p>
+
+<p>In order to be alerted when the monster becomes alive, you build a
+monster <code>service</code>:</p>
+
+<figure class='code'><figcaption><span>Monster Service  </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'>  <span class="nx">angular</span><span class="p">.</span><span class="nx">module</span><span class="p">(</span><span class="s2">&quot;app.services&quot;</span><span class="p">).</span><span class="nx">service</span><span class="p">(</span><span class="s2">&quot;Monster&quot;</span><span class="p">,</span> <span class="p">[</span><span class="kd">function</span><span class="p">(){</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">this</span><span class="p">.</span><span class="nx">alive</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">this</span><span class="p">.</span><span class="nx">weatherChange</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">weather</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="p">.</span><span class="nx">alive</span> <span class="o">=</span> <span class="p">(</span><span class="nx">weather</span><span class="p">.</span><span class="nx">status</span> <span class="o">==</span> <span class="s2">&quot;thunderstorm&quot;</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="p">}]);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As soon as something calls the <code>Monster</code> Service with the right weather,
+it will become alive.</p>
+
+<p>Since you care about the status of the abomination you created, you try
+to check for the monsters&rsquo;s aliveness and display your emotions
+accordingly in a controller:</p>
+
+<figure class='code'><figcaption><span>MadScientist Controller  </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'>  <span class="nx">angular</span><span class="p">.</span><span class="nx">module</span><span class="p">(</span><span class="s2">&quot;app.services&quot;</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">.</span><span class="nx">controller</span><span class="p">(</span><span class="s2">&quot;MadScientistCtrl&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;$scope&quot;</span><span class="p">,</span> <span class="s2">&quot;Monster&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">$scope</span><span class="p">,</span> <span class="nx">Monster</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>      <span class="nx">$scope</span><span class="p">.</span><span class="nx">alive</span> <span class="o">=</span> <span class="nx">Monster</span><span class="p">.</span><span class="nx">alive</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}]);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The accompanying view:</p>
+
+<figure class='code'><figcaption><span>MadScientist View  </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='html'><span class='line'>  <span class="nt">&lt;div</span> <span class="na">ng-controller=</span><span class="s">&quot;MadScientistCtrl&quot;</span> <span class="na">class=</span><span class="s">&quot;column&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;div</span> <span class="na">ng-show=</span><span class="s">&quot;alive&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;img</span> <span class="na">ng-src=</span><span class="s">&quot;img/frankenstein_excited.jpg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/div&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;div</span> <span class="na">ng-hide=</span><span class="s">&quot;alive&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;img</span> <span class="na">ng-src=</span><span class="s">&quot;img/frankenstein_calm.jpg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/div&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&lt;/div&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now since Angular.js has all this two-way binding magic you spend your time waiting
+with a girl you just met at Starbucks, confident of being informed once
+the monster becomes alive.</p>
+
+<p><img class="center" src="http://stsc3000.github.io/images/posts/frankenstein/frankenstein_calm.jpg" title="[ Title [ alt ] ]" ></p>
+
+<p>Unfortunately, the result is <a href="http://stsc3000.github.io/examples/frankenstein/broken.html">this</a>:
+Once the weather changes to a thunderstorm, your monster becomes alive
+and you don&rsquo;t notice while chatting about how great the latest Beirut
+ album is and how no one <em>really</em> gets it. Your monster is free to
+roam and wreak havoc on mankind as we know it.</p>
+
+<h2>So why is that?</h2>
+
+<p>Angular.js two-way data binding (aka <code>$digest</code> loop) roughly works as follows:</p>
+
+<ul>
+<li>When referencing <code>alive</code> in the view, angular creates a &ldquo;watch&rdquo; for the
+<code>$scope.alive</code> property.</li>
+<li>Upon certain events (user input, network interaction, &hellip;) in the
+angular domain, all watches will be evaluated and will be compared to
+their previous values.</li>
+<li>If a value has changed (i.e. the previous value is not equal to the current value),
+machinery is set in motion to propagate the changes in the value to
+the watching parties &ndash; e.g. the view in this case, causing an update of
+the UI.</li>
+</ul>
+
+
+<p>Now, that may be fine, but: Given that the monster has become alive, why
+won&rsquo;t the change be propagated up to the <code>MadScientistCtrl</code>?</p>
+
+<p>It turns out that the operation</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'><span class="nx">$scope</span><span class="p">.</span><span class="nx">alive</span> <span class="o">=</span> <span class="nx">Monster</span><span class="p">.</span><span class="nx">alive</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>does <em>not</em> make <code>$scope.alive</code> reference the <code>Monster.alive</code> property, but
+merely ends up copying it.
+Thus, although the <code>Monster.alive</code> value changes, the copy in <code>$scope.alive</code>
+does not and the angular machinery can not pick up the change.</p>
+
+<h2>Primitives, Objects, References and Immutability</h2>
+
+<p>I will go into some theoretical detail to debug the simple assignment instruction to <code>$scope.alive</code>.
+The error shown above is a result of misunderstanding how JavaScript
+assignment works &ndash; we need to understand what primitives, objects and
+assignments are to understand Variable Assignment:</p>
+
+<h3>What is a Primitive?</h3>
+
+<p>A primitive is a value of type <code>string</code>, <code>number</code>, <code>boolean</code>, <code>null</code> or
+<code>undefined</code>. Primitives are <em>immutable</em> &ndash; i.e. its value cannot be
+changed by invoking functions on it.</p>
+
+<h3>What is an Object?</h3>
+
+<p>The <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Glossary">Mozilla JavaScript Glossary</a> defines an object as an &ldquo;unordered
+  collection of properties&rdquo;, among other things. An object is mutable &ndash;
+you can change the values its properties reference, add new properties
+or delete some.</p>
+
+<h3>What is a Variable?</h3>
+
+<p>A variable is a <em>reference</em> to value that is either an object or a
+primitive. The same variable can reference different values in its
+lifecycle.</p>
+
+<h3>Variable Assignment</h3>
+
+<p>Every assignment of a value to a variable makes the variable reference
+the value.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'>  <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="s2">&quot;string-primitive&quot;</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">a</span> <span class="o">==</span> <span class="s2">&quot;string-primitive&quot;</span><span class="p">;</span> <span class="c1">// true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>An assignment of variable <code>b</code> to variable <code>a</code> makes variable
+<code>b</code> reference the same value that variable <code>a</code> references.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'>  <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="s2">&quot;string-primitive&quot;</span><span class="p">;</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">a</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">b</span> <span class="o">==</span> <span class="nx">a</span><span class="p">;</span> <span class="c1">// true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Assigning a value <code>y</code> to a variable that references a value <code>x</code> does
+not change the value <code>x</code> &ndash; it merely makes the variable reference a
+different value without losing the original one. A reference to the old
+value <code>x</code> will still refer to the original, unchanged value.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'>  <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="s2">&quot;x&quot;</span><span class="p">;</span>
+</span><span class='line'>  <span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">a</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">b</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span><span class="p">;</span> <span class="c1">// true</span>
+</span><span class='line'>  <span class="nx">b</span> <span class="o">=</span> <span class="s2">&quot;y&quot;</span><span class="p">;</span>
+</span><span class='line'>  <span class="nx">b</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">;</span> <span class="c1">// true</span>
+</span><span class='line'>  <span class="nx">a</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span><span class="p">;</span> <span class="c1">// true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Back to the monster</h2>
+
+<p>During this little excursion the monster has been running rampant and
+you consider it a lost case. Naturally you have already created the next
+creature to bring darkness to the world and are, again, in the position
+of waiting for the weather to produce a thunderstorm.</p>
+
+<p>Again, you spend your time talking to a girl that you met at the vegan
+farmers market, explaining why you consider the renaissance 80&rsquo;s sneakers to be an
+ironic display of non-mainstream fashion sensibility. And again, you
+want to be informed of the change in your monster&rsquo;s aliveness. But this
+time, you change your routine:</p>
+
+<figure class='code'><figcaption><span>MadScientist Controller  </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'>  <span class="nx">angular</span><span class="p">.</span><span class="nx">module</span><span class="p">(</span><span class="s2">&quot;app.services&quot;</span><span class="p">).</span><span class="nx">controller</span><span class="p">(</span><span class="s2">&quot;MadScientistCtrl&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;$scope&quot;</span><span class="p">,</span> <span class="s2">&quot;Monster&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">$scope</span><span class="p">,</span> <span class="nx">Monster</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nx">$scope</span><span class="p">.</span><span class="nx">monster</span> <span class="o">=</span> <span class="nx">Monster</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}]);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>MadScientist View  </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='html'><span class='line'>  <span class="nt">&lt;div</span> <span class="na">ng-controller=</span><span class="s">&quot;MadScientistCtrl&quot;</span> <span class="na">class=</span><span class="s">&quot;column&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;div</span> <span class="na">ng-show=</span><span class="s">&quot;monster.alive&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;img</span> <span class="na">ng-src=</span><span class="s">&quot;img/frankenstein_excited.jpg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/div&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;div</span> <span class="na">ng-hide=</span><span class="s">&quot;monster.alive&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;img</span> <span class="na">ng-src=</span><span class="s">&quot;img/frankenstein_calm.jpg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/div&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&lt;/div&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Check the result <a href="http://stsc3000.github.io/examples/frankenstein/working.html">here</a>.</p>
+
+<p>Obviously the experiment worked and you have been informed about the
+change. But Why? Let&rsquo;s consider the angular <code>$digest</code> loop again and see
+how this small change in the code made it work:</p>
+
+<ul>
+<li>When referencing <code>monster.alive</code> in the view, angular creates a &ldquo;watch&rdquo; for the
+<code>$scope.monster.alive</code> property.</li>
+<li>Upon clicking the button, angular saves old values of all watches
+(i.e. <code>$scope.monster.alive = false</code>).</li>
+<li>It then executes the functionality induced by clicking the button (e.g. changing the
+weather and then bringing the creature to life).</li>
+<li>At the end of this process, the old watch values are compared to new
+watch values &ndash; which is where our change comes into play:</li>
+</ul>
+
+
+<p>When we assigned <code>$scope.monster = Monster;</code>, we created a <em>reference</em>  to
+the Monster <em>service</em> (an object!) on the <code>$scope</code>. Thus when comparing the old and new
+values of <code>$scope.monster.alive</code>, angular looks up the reference and
+sees the new value in <code>Monster.alive</code>. The difference in the value makes
+angular re-render the UI, finally showing <em>you</em> as excited as you ought
+to be for not only once, but twice creating a creature that is an insult
+to all living things.</p>
+
+<h2>Same deal, using $watch</h2>
+
+<p>Of course other techniques for binding service values to
+controllers exist if you feel that directly referencing an
+object in your view is too much coupling, or that it is still necessary
+to bind to a primitive value somehow,</p>
+
+<p>This can be achieved by adding a &ldquo;manual&rdquo; watch (linkto angular scope doc
+for watch) for angular, which will
+update your scopes variables upon change of the watched value:</p>
+
+<figure class='code'><figcaption><span>MadScientist Controller  </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='js'><span class='line'>  <span class="nx">angular</span><span class="p">.</span><span class="nx">module</span><span class="p">(</span><span class="s2">&quot;app.services&quot;</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">.</span><span class="nx">controller</span><span class="p">(</span><span class="s2">&quot;MadScientistCtrl&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;$scope&quot;</span><span class="p">,</span> <span class="s2">&quot;Monster&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">$scope</span><span class="p">,</span> <span class="nx">Monster</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nx">$scope</span><span class="p">.</span><span class="nx">alive</span> <span class="o">=</span> <span class="nx">Monster</span><span class="p">.</span><span class="nx">alive</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="nx">$scope</span><span class="p">.</span><span class="nx">$watch</span><span class="p">(</span>
+</span><span class='line'>        <span class="kd">function</span><span class="p">(){</span> <span class="k">return</span> <span class="nx">Monster</span><span class="p">.</span><span class="nx">alive</span> <span class="p">},</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="kd">function</span><span class="p">(</span><span class="nx">newVal</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>          <span class="nx">$scope</span><span class="p">.</span><span class="nx">alive</span> <span class="o">=</span> <span class="nx">newVal</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>      <span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="p">}]);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The accompanying view:</p>
+
+<figure class='code'><figcaption><span>MadScientist View  </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='html'><span class='line'>  <span class="nt">&lt;div</span> <span class="na">ng-controller=</span><span class="s">&quot;MadScientistCtrl&quot;</span> <span class="na">class=</span><span class="s">&quot;column&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;div</span> <span class="na">ng-show=</span><span class="s">&quot;alive&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;img</span> <span class="na">ng-src=</span><span class="s">&quot;img/frankenstein_excited.jpg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/div&gt;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="nt">&lt;div</span> <span class="na">ng-hide=</span><span class="s">&quot;alive&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>      <span class="nt">&lt;img</span> <span class="na">ng-src=</span><span class="s">&quot;img/frankenstein_calm.jpg&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;/div&gt;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&lt;/div&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Further Reading</h2>
+
+<ul>
+<li><a href="http://www.packtpub.com/angularjs-web-application-development/book">Mastering Web Application Development with
+AngularJS</a>: Chapter 11 is a fantastic summary of the workings of the <code>$digest</code> loop and related concepts.</li>
+</ul>
+
+
+<p>Images from &ldquo;Young Frankenstein&rdquo; and &ldquo;Frankenstein&rdquo; are believed to be in public domain.</p>
+]]></content>
+  </entry>
+  
+</feed>

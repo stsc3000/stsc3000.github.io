@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" ng-app="app">
+<head>
+  <meta charset="utf-8">
+  <title>Is it Alive?</title>
+  <style>
+    body {
+      font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+    }
+
+    .column {
+      width: 33.33%;
+      text-align: center;
+      float: left;
+    }
+
+    .column img {
+      max-width: 100%;
+    }
+
+    .attribution {
+      color: #666;
+      position: absolute;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div ng-controller="WeatherCtrl" class="column">
+    <div ng-switch="weather.status">
+      <div ng-switch-when="clear">
+        <img ng-src="img/weather_clear.png">
+      </div>
+      <div ng-switch-when="thunderstorm">
+        <img ng-src="img/weather_thunderstorm.png">
+      </div>
+    </div>
+    <button ng-click="toggleThunderstorm()">Toggle Thunderstorm</button>
+  </div>
+
+  <div ng-controller="MonsterCtrl" class="column">
+
+    <div ng-switch="monster.alive">
+      <div ng-switch-when="true">
+        <img ng-src="img/monster_alive.jpg">
+      </div>
+      <div ng-switch-when="false">
+        <img ng-src="img/monster_dead.jpg">
+      </div>
+    </div>
+
+  </div>
+
+  <div ng-controller="MadScientistCtrl" class="column">
+    <div ng-show="alive">
+      <img ng-src="img/frankenstein_excited.jpg">
+    </div>
+
+    <div ng-hide="alive">
+      <img ng-src="img/frankenstein_calm.jpg">
+    </div>
+  </div>
+
+
+
+  <div class="attribution">
+  Image: "Cumulus clouds in fair weather" Source: Photograph taken by <a
+    href="http://legacy.openphoto.net/image_view.html?image_id=17977">Michael
+    Jastremski</a>. Copyright © 2004 Michael Jastremski. Licensed under
+  the <a
+    href="http://creativecommons.org/licenses/by/3.0/deed.en_US">Creative
+    Commons</a> license. Images from "Young Frankenstein" and
+  "Frankenstein" are believed to be in public domain.
+  </div>
+
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+  <script type="text/javascript">
+    angular.module('app', [
+      'app.services',
+      'app.controllers'
+    ])
+
+    angular.module('app.controllers', []).
+      controller('WeatherCtrl', ["$scope", "Weather", function($scope, Weather) {
+        $scope.weather = Weather;
+
+        $scope.toggleThunderstorm = function() {
+          $scope.weather.toggleThunderstorm();
+        }
+      }])
+      .controller('MonsterCtrl', ["$scope", "Monster", function($scope, Monster) {
+        $scope.monster = Monster;
+      }])
+      .controller("MadScientistCtrl", ["$scope", "Monster", function($scope, Monster) {
+        $scope.alive = Monster.alive;
+      }]);
+
+    angular.module('app.services', []).
+      service("Weather", ["Monster", function(Monster){
+
+        this.status = "clear";
+
+        this.toggleThunderstorm = function() {
+          this.status = ( this.status == "clear" ? "thunderstorm" : "clear" );
+          Monster.weatherChange(this);
+        };
+      }])
+      .service("Monster", [function(){
+
+        this.alive = false;
+
+        this.weatherChange = function(weather) {
+          this.alive = (weather.status == "thunderstorm")
+        };
+
+      }]);
+
+  </script>
+
+</body>
+</html>

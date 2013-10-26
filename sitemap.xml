@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
+    <url>
+        <loc>
+            http://stsc3000.github.io/blog/2013/10/26/a-tale-of-frankenstein-and-binding-to-service-values-in-angular-dot-js/
+        </loc>
+        <lastmod>2013-10-26T20:17:48+02:00</lastmod>
+    </url>
+    <url>
+        <loc>http://stsc3000.github.io/about/</loc>
+        <lastmod>2013-10-23T21:50:28+02:00</lastmod>
+    </url>
+    <url>
+        <loc>http://stsc3000.github.io/</loc>
+        <lastmod>2013-10-26T20:17:48+02:00</lastmod>
+    </url>
+    <url>
+        <loc>http://stsc3000.github.io/blog/archives/</loc>
+        <lastmod>2013-10-26T20:17:48+02:00</lastmod>
+    </url>
+    <url>
+        <loc>http://stsc3000.github.io/robots.txt</loc>
+        <lastmod>2013-10-20T17:45:43+02:00</lastmod>
+    </url>
+</urlset>
