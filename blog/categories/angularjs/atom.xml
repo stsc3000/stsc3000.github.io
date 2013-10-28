@@ -4,7 +4,7 @@
   <title><![CDATA[Category: AngularJs | stsc3000's blog]]></title>
   <link href="http://stsc3000.github.io/blog/categories/angularjs/atom.xml" rel="self"/>
   <link href="http://stsc3000.github.io/"/>
-  <updated>2013-10-26T20:17:48+02:00</updated>
+  <updated>2013-10-28T14:50:25+01:00</updated>
   <id>http://stsc3000.github.io/</id>
   <author>
     <name><![CDATA[Steffen Schildknecht]]></name>
@@ -318,8 +318,7 @@ controllers exist if you feel that directly referencing an
 object in your view is too much coupling, or that it is still necessary
 to bind to a primitive value somehow,</p>
 
-<p>This can be achieved by adding a &ldquo;manual&rdquo; watch (linkto angular scope doc
-for watch) for angular, which will
+<p>This can be achieved by adding a &ldquo;manual&rdquo; watch, which will
 update your scopes variables upon change of the watched value:</p>
 
 <p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>MadScientist Controller  </span></figcaption>
